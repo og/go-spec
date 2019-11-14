@@ -3,8 +3,8 @@ package dict
 import "testing"
 
 func ExampleModelNewsCreate() {
-	ServiceNewsCreate(QueryNewCreate{
-		Range: QueryNewCreate{}.Dict().Range.Wechat,
+	ServiceNewsCreate(QueryNewsCreate{
+		Range: QueryNewsCreate{}.Dict().Range.Wechat,
 		Title: "a",
 		Mobile: "13888888888",
 	})

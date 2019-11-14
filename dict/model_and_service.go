@@ -1,12 +1,12 @@
 package dict
 
 
-type QueryNewCreate struct {
+type QueryNewsCreate struct {
 	Range string
 	Title string
 	Mobile string
 }
-func (self QueryNewCreate) Dict() (dict struct{
+func (self QueryNewsCreate) Dict() (dict struct{
 	Range struct {
 		Wechat string
 		All string
@@ -16,7 +16,7 @@ func (self QueryNewCreate) Dict() (dict struct{
 	dict.Range = News{}.Dict().Range
 	return
 }
-func ServiceNewsCreate(query QueryNewCreate) {
+func ServiceNewsCreate(query QueryNewsCreate) {
 	ModelNewsCreate(News{
 		Range: query.Range,
 		Title: query.Title,
