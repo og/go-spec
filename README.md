@@ -207,3 +207,4 @@ func main() {
 
 注意如果在 `ListPartUser_ID_Name` 中新增了一个字段必须改变函数名，例如 新增 `age` 改名 `ListPartUser_ID_Name_Age`，接着又删除了 Name 改名 `ListPartUser_ID_Age`。
 
+还有一种情况：最初有 `A()` `B()` `C()` 三个函数都调用了 `ListPartUser_ID_Name()` ，随着业务的变化 `C()` 需要调用一个新的函数 `ListPartUser_ID_Name_Age()` ,此时不应该将 `ListPartUser_ID_Name()` 名和内部实现修改为 `ListPartUser_ID_Name_Age`，而是要新增一个 `ListPartUser_ID_Name_Age()`。因为 `A()` `B()` 只需要 `id` 和 `name` 。（不要因为"偷懒"降低代码可维护性和性能）
