@@ -125,3 +125,85 @@ Update(QueryUpdate{
 	},
 })
 ```
+
+## part model
+
+当 sql 只查出部分字段时，应当建立新的结构体作为 model 返回，而不是公用字段完整的 model 结构体。并且注意函数命名。
+
+有时我们只需要 sql 查询部分字段。请看下面的代码
+
+```go
+type User struct {
+	ID       string `db:"id"`
+	Name     string `db:"name"`
+	Age      int    `db:"age"`
+	Integral int	`db:"integral"`
+}
+// 不好的示例
+func ListPartUser() (userList []User) {
+	db.Select(&userList, `SELECT id, name from user`)
+	return userList
+}
+```
+
+`ListPartUser()` 返回的 `[]User` 中只有 `id` `name` 有数据。
+
+调用方可能使用 `ListPartUser()[0].Age`，此时 `age` 是[zero value](https://studygolang.com/articles/15145?fr=sidebar) 使用它是不"安全"的。
+
+并且在 `ListPartUser()` 内部增加或删除字段 
+
+```diff
+- SELECT id,name FROM user
++ SELECT id FROM user
+``` 
+
+ `ListPartUser()` 的调用方并不知道没有了 `name` 必须修改 `ListPartUser()` 的人肉检查所有调用方。
+
+我们想利用类型系统去检查就需要定义出一个新的类型
+
+
+
+
+```go
+
+type User struct {
+	ID       string `db:"id"`
+	Name     string `db:"name"`
+	Age      int    `db:"age"`
+	Integral int	`db:"integral"`
+}
+type PartUser_ID_Name struct {
+	ID string
+	Name string
+}
+func ListPartUser_ID_Name() (partUserList []PartUser_ID_Name) {
+	userList := []User{}
+	db.Select(&userList, `SELECT id, name FROM user`)
+	for _, user := range userList {
+		partUserList = append(partUserList, PartUser_ID_Name{
+			ID: user.ID,
+			Name: user.Name,
+		})
+	}
+	return partUserList
+}
+// 单个字段直接使用 ListUser{字段} 并返回 []字段类型
+func ListUserID() (userIDList []string) {
+	userList := []User{}
+	db.Select(&userIDList, `SELECT id FROM user`)
+	for _, user := range userList {
+		userIDList = append(userIDList, user.ID)
+	}
+	return userIDList
+}
+func main() {
+	partUserList := ListPartUser_ID_Name()
+	log.Print(partUserList[0].Name)
+	// 此时使用 partUserList[0].Age 会报错，因为 PartUser_ID_Name 中没有 Age
+}
+```
+
+此时使用变量 `partUserList` 会有"安全的"类型提示，不用担心字段是 zero value 。
+
+注意如果在 `ListPartUser_ID_Name` 中新增了一个字段必须改变函数名，例如 新增 `age` 改名 `ListPartUser_ID_Name_Age`，接着又删除了 Name 改名 `ListPartUser_ID_Age`。
+
