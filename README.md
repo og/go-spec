@@ -126,6 +126,80 @@ Update(QueryUpdate{
 })
 ```
 
+**限定必须使用字典赋值字段**
+
+不限定的情况下
+
+
+```go
+type OneRange struct {
+	Type string
+	Start time.Time
+	End time.Time
+}
+func (self OneRange) Dict() (dict struct{
+	Type struct{
+		Year string
+		Month string
+		Day string
+	}
+}) {
+	dict.Type.Year = "year"
+	dict.Type.Month = "month"
+	dict.Type.Day = "day"
+	return
+}
+```
+
+限定的情况
+```go
+type rangeType struct {
+	value string
+}
+type TwoRange struct {
+	Type rangeType
+	Start time.Time
+	End time.Time
+}
+func (self TwoRange) Dict() (dict struct{
+	Type struct{
+		Year rangeType
+		Month rangeType
+		Day rangeType
+	}
+}) {
+	dict.Type.Year = rangeType{"year"}
+	dict.Type.Month = rangeType{"month"}
+	dict.Type.Day = rangeType{"day"}
+	return
+}
+```
+
+如果 struct 需要跟请求所绑定（类似 json.Unmarshal 的操作），则 Range.Type应该是个 string 。如果不需要绑定则可以参考上面的代码设计。这样可以去报使用者必须通过 dict 赋值 type
+
+```go
+TwoRange{
+	Type: Range{}.Dict().Type.Day,
+	Start: gtime.Parse(Day, "2018-01-01")),
+	End:   gtime.Parse(Day, "2018-01-05")),
+}
+```
+
+因为如果是 string, 有时候我们会为了偷懒不通过dict赋值type 比如：
+
+```go
+query := struct {
+	Type string `json:"type"`
+}
+gjson.Parse(reuqest.Body, &query)
+OneRange{
+	Type: query.Type,
+	Start: gtime.Parse(Day, "2018-01-01")),
+	End:   gtime.Parse(Day, "2018-01-05")),
+}
+```
+这种情况下如果自己约定了 query.type 必须是 "day" "month" "year"，并且一切按约定运行则没问题。但如果 Range 改了字典值，会导致请 query 与 range不一致出现无法预料的结果。所以如果你的结构体不需要 json xml 等做 decode 操作则通过让字段是私有结构体，并且只能通过字典获取私有结构体来避免因为”偷懒“导致的埋雷。
+
 ## part model
 
 当 sql 只查出部分字段时，应当建立新的结构体作为 model 返回，而不是公用字段完整的 model 结构体。并且注意函数命名。
