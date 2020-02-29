@@ -126,7 +126,7 @@ Update(QueryUpdate{
 })
 ```
 
-**限定必须使用字典赋值字段**
+**严格字典**
 
 不限定的情况下
 
@@ -175,7 +175,7 @@ func (self TwoRange) Dict() (dict struct{
 }
 ```
 
-如果 struct 需要跟请求所绑定（类似 json.Unmarshal 的操作），则 Range.Type应该是个 string 。如果不需要绑定则可以参考上面的代码设计。这样可以去报使用者必须通过 dict 赋值 type
+如果 struct 需要跟请求所绑定（类似 json.Unmarshal 的操作），则 Range.Type应该是个 string 。如果不需要绑定则可以使用严格字典。这样可以去报使用者必须通过 dict 赋值 type
 
 ```go
 TwoRange{
@@ -199,6 +199,33 @@ OneRange{
 }
 ```
 这种情况下如果自己约定了 query.type 必须是 "day" "month" "year"，并且一切按约定运行则没问题。但如果 Range 改了字典值，会导致请 query 与 range不一致出现无法预料的结果。所以如果你的结构体不需要 json xml 等做 decode 操作则通过让字段是私有结构体，并且只能通过字典获取私有结构体来避免因为”偷懒“导致的埋雷。
+
+如果字典有多个字段，应该设置不同的类型
+
+```go
+type dateTypeDict struct {v string}
+type dateStatusDict struct {v string}
+type Date struct {
+	Type dateTypeDict
+	Status dateStatusDict
+}
+func (self Date) Dict() (dict struct {
+	Type struct {
+		Month dateTypeDict
+		Day dateTypeDict
+	}
+	Status struct{
+		Pass dateStatusDict
+		Fail dateStatusDict
+	}
+}) {
+	dict.Type.Month = dateTypeDict{"month"}
+	dict.Type.Day = dateTypeDict{"day"}
+	dict.Status.Pass = dateStatusDict{"pass"}
+	dict.Status.Fail = dateStatusDict{"fail"}
+	return
+}
+```
 
 ## part model
 
