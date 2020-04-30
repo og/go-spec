@@ -227,6 +227,41 @@ func (self Date) Dict() (dict struct {
 }
 ```
 
+## 值继承的字典
+```go
+type User struct {
+	ID string
+	Name string
+	Kind string
+}
+func (User) Dict() (dict struct {
+	Kind struct{
+		Normal string
+		VIP string
+	}
+}) {
+	dict.Kind.Normal = "normal"
+	dict.Kind.VIP = "vip"
+	return
+}
+type Group struct {
+	ID string
+	Name string
+	UserKind string
+}
+func (Group) Dict()(dict struct{
+	Kind struct{
+		Normal string
+		VIP string
+	}
+}){
+	dict.Kind = User{}.Dict().Kind
+	return 
+}
+```
+
+> 匿名结构体可以赋值具名结构体
+
 ## part model
 
 当 sql 只查出部分字段时，应当建立新的结构体作为 model 返回，而不是公用字段完整的 model 结构体。并且注意函数命名。
