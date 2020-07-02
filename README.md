@@ -344,3 +344,96 @@ func main() {
 注意如果在 `ListPartUser_ID_Name` 中新增了一个字段必须改变函数名，例如 新增 `age` 改名 `ListPartUser_ID_Name_Age`，接着又删除了 Name 改名 `ListPartUser_ID_Age`。
 
 还有一种情况：最初有 `A()` `B()` `C()` 三个函数都调用了 `ListPartUser_ID_Name()` ，随着业务的变化 `C()` 需要调用一个新的函数 `ListPartUser_ID_Name_Age()` ,此时不应该将 `ListPartUser_ID_Name()` 名和内部实现修改为 `ListPartUser_ID_Name_Age`，而是要新增一个 `ListPartUser_ID_Name_Age()`。因为 `A()` `B()` 只需要 `id` 和 `name` 。（不要因为"偷懒"降低代码可维护性和性能）
+
+## 封装switch
+
+一段不好的代码
+
+```go
+type Res struct {
+	Type string
+}
+func (Res) Dict() (dict struct {
+	Type struct {
+		Pass string
+		Fail string
+	}
+}) {
+	dict.Type.Pass = "pass"
+	dict.Type.Fail = "fail"
+	return
+}
+func Bad(res Res) {
+	dict := res.Dict().Type
+	switch res.Type {
+	default:
+		panic(errors.New("type error"))
+	case dict.Pass:
+		log.Print("pass")
+	case dict.Fail:
+		log.Printf("fail")
+	}
+}
+```
+
+虽然 `Bad()` 中的 `switch` 使用了 `dict`防止写错单词，但是如果 `Res` 的 `Type` 新增了一个 `Wait` 字段,需要检查所有 `switch res.Type` 的地方.
+一旦项目多处 `switch res.Type` 很容易遗漏。
+
+```go
+func (v Res) SwitchType(
+	Pass func (_Pass int),
+	Fail func (_Fail bool),
+	) {
+	dict := v.Dict().Type
+	switch v.Type {
+	default:
+		panic(errors.New("Res Type can not match(" + v.Type +")"))
+	case dict.Pass:
+		Pass(1)
+	case dict.Fail:
+		Fail(true)
+	}
+}
+/*
+通过封装 SwitchType 并使用回调函数代替 case ,
+SwtichType 内部用switch 实现，当 Res 新增 Type 时候只需要在
+SwitchType 修改即可，并且参数新增函数就能在编译器自动检查所有 switch res.Type 的地方
+利用 IDE 的自动补全能够快速写出 SwitchType 调用代码
+ */
+func Good(res Res) {
+	res.SwitchType(
+	   func(_Pass int) {
+		log.Print("pass")
+	}, func(_Fail bool) {
+		log.Print("fail")
+	})
+}
+```
+
+SwitchType 函数中的 _Pass bool 和 _Fail string 之所有是第一个是 bool 第二个是 string 是
+为了防止调用 SwitchType 时写错回调函数顺序
+
+当 Type 非常多时可以通过如下顺序配置回调函数
+
+```
+int
+bool
+string
+[]int
+[]bool
+[]string
+map[int]int
+map[int]bool
+map[int]string
+```
+
+顺序按照字数少的类型到字数大的， 只使用 int bool string 作为类型， 逐渐增加 slice map
+
+```go
+func (res Res) SwitchType(
+    Pass func (_Pass int),
+    Fail func (_Fail bool),
+    Wait func(_Wait string),
+    Danger func(_Danger []int),
+) {}
+```
